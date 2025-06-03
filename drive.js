@@ -28,8 +28,7 @@ function generateImageUrl(fileId) {
   return `https://lh3.googleusercontent.com/d/${validFileId}`;
 }
 
-/// ...Imports und setup wie gehabt...
-
+// upload a file to Google Drive
 export async function uploadToDrive(filePath, fileName) {
   try {
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -69,42 +68,6 @@ export async function uploadToDrive(filePath, fileName) {
     };
   } catch (error) {
     console.error("Error uploading to Google Drive:", error);
-    throw error;
-  }
-}
-
-// ✅ Neue Funktion separat definiert:
-export async function uploadPromptToDrive(promptText, imageName) {
-  try {
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    const promptFilePath = path.join(__dirname, "temp_prompt.txt");
-
-    fs.writeFileSync(promptFilePath, promptText);
-
-    const promptMetadata = {
-      name: imageName.replace(/\.jpg$/, ".txt"),
-      parents: [folderId],
-    };
-
-    const media = {
-      mimeType: "text/plain",
-      body: fs.createReadStream(promptFilePath),
-    };
-
-    const response = await drive.files.create({
-      resource: promptMetadata,
-      media: media,
-      fields: "id",
-    });
-
-    await drive.permissions.create({
-      fileId: response.data.id,
-      requestBody: { role: "reader", type: "anyone" },
-    });
-
-    fs.unlinkSync(promptFilePath);
-  } catch (error) {
-    console.error("Error uploading prompt to Google Drive:", error);
     throw error;
   }
 }

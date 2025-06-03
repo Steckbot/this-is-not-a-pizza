@@ -71,7 +71,6 @@ export async function generateImage(prompt, modelName) {
     // Upload to Google Drive
     const driveResult = await uploadToDrive(filepath, filename);
     console.log("Uploaded to Google Drive:", driveResult);
-    await uploadPromptToDrive(prompt, filename);
 
     // Return both the local URL and the Google Drive URL
     return {
