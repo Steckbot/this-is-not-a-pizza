@@ -41,11 +41,12 @@
       .gallery-item {
         position: relative;
         overflow: hidden;
+        aspect-ratio: 16 / 9;
       }
 
       .gallery-item img {
         width: 100%;
-        aspect-ratio: 16 / 9;
+        height: 100%;
         object-fit: cover;
         display: block;
       }
@@ -96,36 +97,42 @@
           const [imagesRes, promptsRes] = await Promise.all([fetch("/images.json"), fetch("/prompts.json")]);
 
           if (!imagesRes.ok || !promptsRes.ok) {
-            throw new Error("Fehler beim Laden von Daten");
+            throw new Error("Error loading data");
           }
 
-          const imageFilenames = await imagesRes.json();
+          const images = await imagesRes.json();
           const prompts = await promptsRes.json();
 
-          imageFilenames.forEach((filename) => {
-            const promptText = prompts[filename] || "Kein Prompt verfügbar";
-            addToGalery(`/generated/${filename}`, promptText);
+          console.log("Loaded images:", images); // Debug log
+
+          images.forEach((image) => {
+            // Use the Google Drive URL to look up the prompt
+            const promptText = prompts[image.imageUrl] || "No prompt available";
+            addToGallery(image.imageUrl, promptText);
           });
         } catch (error) {
-          console.error("Fehler beim Laden der Galerie:", error);
+          console.error("Error loading gallery:", error);
           const gallery = document.getElementById("gallery");
-          gallery.textContent = "Fehler beim Laden der Galerie.";
+          gallery.textContent = "Error loading gallery.";
         }
       }
 
-      function addToGalery(imageUrl, promptText) {
+      function addToGallery(imageUrl, promptText) {
+        console.log("Adding image to gallery:", imageUrl); // Debug log
+
         const galleryItem = document.createElement("div");
         galleryItem.className = "gallery-item";
 
-        const galleryImg = document.createElement("img");
-        galleryImg.src = imageUrl;
-        galleryImg.alt = "Generated image";
-
+        // Create an image element
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        img.alt = promptText;
+        
         const overlay = document.createElement("div");
         overlay.className = "overlay";
         overlay.innerHTML = `<span>${promptText}</span>`;
 
-        galleryItem.appendChild(galleryImg);
+        galleryItem.appendChild(img);
         galleryItem.appendChild(overlay);
 
         document.getElementById("gallery").appendChild(galleryItem);

@@ -2,7 +2,11 @@ import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { generateImage } from "./generator.js";
+import { uploadToDrive, listFiles} from "./drive.js";
 import fs from "fs";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,30 +28,61 @@ app.use("/default_image", express.static(defaultImageDir));
 app.get("/", (req, res) => res.sendFile(join(__dirname, "index.html")));
 app.get("/gallery.html", (req, res) => res.sendFile(join(__dirname, "gallery.html")));
 
-// POST /generate → Generate image
+// Generate image
 app.post("/generate", async (req, res) => {
   try {
     const { prompt, model } = req.body;
     if (!prompt || !model) return res.status(400).json({ error: "Prompt and model are required." });
 
-    const imageUrl = await generateImage(prompt, model);
-    res.json({ imageUrl });
+    const result = await generateImage(prompt, model);
+    console.log("Generated image result:", result);
+    
+    // Save prompt mapping
+    const promptFile = join(publicDir, "prompts.json");
+    let prompts = {};
+    if (fs.existsSync(promptFile)) {
+      prompts = JSON.parse(fs.readFileSync(promptFile, "utf8"));
+    }
+    // Save prompt using the Google Drive URL as the key
+    prompts[result.driveUrl] = prompt;
+    fs.writeFileSync(promptFile, JSON.stringify(prompts, null, 2));
+
+    const response = { 
+      imageUrl: result.localUrl,
+      driveUrl: result.driveUrl
+    };
+    console.log("Sending response:", response);
+    
+    res.json(response);
   } catch (error) {
     console.error("❌ Error generating image:", error);
     res.status(500).json({ error: "Failed to generate image." });
   }
 });
 
-// GET /images.json → Image list (sorted newest first)
-app.get("/images.json", (req, res) => {
+//  Image list from Google Drive
+app.get("/images.json", async (req, res) => {
   try {
-    const files = fs.readdirSync(publicDir);
-    const imageFiles = files.filter((file) => /\.(jpg|jpeg|png|gif|webp)$/i.test(file));
-    imageFiles.sort((a, b) => fs.statSync(join(publicDir, b)).mtime - fs.statSync(join(publicDir, a)).mtime);
-    res.json(imageFiles);
+    const files = await listFiles();
+    res.json(files);
   } catch (error) {
-    console.error("❌ Fehler beim Lesen der Bilder:", error);
-    res.status(500).json({ error: "Fehler beim Lesen der Bilder" });
+    console.error("❌ Error reading images:", error);
+    res.status(500).json({ error: "Error reading images" });
+  }
+});
+
+// Proxy Google Drive images
+app.get("/drive-image/:fileId", async (req, res) => {
+  try {
+    const fileId = req.params.fileId;
+    const response = await drive.files.get(
+      { fileId: fileId, alt: 'media' },
+      { responseType: 'stream' }
+    );
+    response.data.pipe(res);
+  } catch (error) {
+    console.error("❌ Error proxying image:", error);
+    res.status(500).send("Error loading image");
   }
 });
 
@@ -63,8 +98,8 @@ app.get("/prompts.json", (req, res) => {
       res.json({});
     }
   } catch (error) {
-    console.error("❌ Fehler beim Lesen von prompts.json:", error);
-    res.status(500).json({ error: "Fehler beim Lesen von prompts.json" });
+    console.error("❌ Error reading prompts.json:", error);
+    res.status(500).json({ error: "Error reading prompts.json" });
   }
 });
 

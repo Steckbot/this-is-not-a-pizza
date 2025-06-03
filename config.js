@@ -1,3 +1,4 @@
 export const ananasPilz_model = "kratadata/pizza-ananas:d9ba6d88f42ca174d53546fa36c6eaf3e628437e3726e8b28f7c6f403e1dcfd8"
 export const ananas_model = "kratadata/pizza-ananas:d9ba6d88f42ca174d53546fa36c6eaf3e628437e3726e8b28f7c6f403e1dcfd8"
 export const pilz_model = "kratadata/pizza-pilz:13909165408394ea291bdce74a3b41a757f9473e3bd514a9e19a8575f245ce95"
+export const gemischt_model = "kratadata/pizza-gemischt:1cebfd45915e22bd520b4563b80519996117c4f8384e46d7a4db8a274800bfbb"   

@@ -168,7 +168,7 @@
       const loadingText = document.getElementById("loadingText");
       const promptInput = document.getElementById("promptInput");
 
-      const model = "ananasPilz_model";
+      const model = "gemischt_model";
 
       // Disable print initially
       printButton.disabled = true;
@@ -204,6 +204,9 @@
 
           if (data.imageUrl) {
             fullscreenImage.src = data.imageUrl + "?t=" + new Date().getTime();
+            if (data.driveUrl) {
+              console.log("Image uploaded to Google Drive:", data.driveUrl);
+            }
           } else {
             alert("Keine gültige Bild-URL erhalten.");
           }

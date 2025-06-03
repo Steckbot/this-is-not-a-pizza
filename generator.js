@@ -1,16 +1,18 @@
 import Replicate from "replicate";
-import { ananasPilz_model, ananas_model, pilz_model } from "./config.js";
+import { ananasPilz_model, ananas_model, pilz_model, gemischt_model } from "./config.js";
 import fs from "fs";
 import fetch from "node-fetch";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN
+import dotenv from "dotenv";
+import { uploadToDrive } from "./drive.js";
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const replicate = new Replicate({
-  auth: REPLICATE_API_TOKEN,
+  auth: process.env.REPLICATE_API_TOKEN
 });
 
 export async function generateImage(prompt, modelName) {
@@ -27,6 +29,9 @@ export async function generateImage(prompt, modelName) {
       case "pilz_model":
         selectedModel = pilz_model;
         break;
+      case "gemischt_model":
+        selectedModel = gemischt_model;
+        break;
       default:
         throw new Error("Invalid model selected");
     }
@@ -38,7 +43,7 @@ export async function generateImage(prompt, modelName) {
         lora_scale: 1,
         megapixels: "1",
         num_outputs: 1,
-        aspect_ratio: "16:9", // vom Druckcode übernommen
+        aspect_ratio: "16:9",
         output_format: "jpg",
         guidance_scale: 3,
         output_quality: 100,
@@ -49,31 +54,31 @@ export async function generateImage(prompt, modelName) {
       },
     });
 
+    // Download the image from Replicate
     const imageUrl = output[0];
-
-    // Lade und speichere das Bild
     const response = await fetch(imageUrl);
-    const imageBuffer = await response.arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
+    // Generate a unique filename
     const timestamp = Date.now();
     const filename = `generated-image-${timestamp}.jpg`;
     const filepath = join(__dirname, "public", filename);
-    fs.writeFileSync(filepath, Buffer.from(imageBuffer));
 
-    // Prompt-Mapping speichern
-    const promptInfoPath = join(__dirname, "public", "prompts.json");
-    let promptMap = {};
-    if (fs.existsSync(promptInfoPath)) {
-      const data = fs.readFileSync(promptInfoPath);
-      promptMap = JSON.parse(data);
-    }
+    // Save the image locally
+    fs.writeFileSync(filepath, buffer);
 
-    promptMap[filename] = prompt;
-    fs.writeFileSync(promptInfoPath, JSON.stringify(promptMap, null, 2));
+    // Upload to Google Drive
+    const driveResult = await uploadToDrive(filepath, filename);
+    console.log("Uploaded to Google Drive:", driveResult);
 
-    return `/generated/${filename}`;
+    // Return both the local URL and the Google Drive URL
+    return {
+      localUrl: `/generated/${filename}`,
+      driveUrl: driveResult.imageUrl
+    };
   } catch (error) {
-    console.error("❌ Error in generateImage:", error);
+    console.error("❌ Error while generating image", error);
     throw error;
   }
 }
