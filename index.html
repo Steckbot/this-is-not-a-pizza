@@ -201,9 +201,11 @@
           }
 
           const data = await res.json();
-
           if (data.imageUrl) {
-            fullscreenImage.src = data.imageUrl + "?t=" + new Date().getTime();
+            console.log("Image URL:", data.imageUrl);
+            // Remove the public/ prefix since the server serves static files from public directory
+            const imagePath = data.imageUrl.replace('public/', '');
+            fullscreenImage.src = imagePath + "?t=" + new Date().getTime();
             if (data.driveUrl) {
               console.log("Image uploaded to Google Drive:", data.driveUrl);
             }

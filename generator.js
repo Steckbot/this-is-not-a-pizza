@@ -1,18 +1,20 @@
 import Replicate from "replicate";
-import { ananasPilz_model, ananas_model, pilz_model, gemischt_model } from "./config.js";
 import fs from "fs";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+
+import { ananasPilz_model, ananas_model, pilz_model, gemischt_model } from "./config.js";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
 import { uploadToDrive } from "./drive.js";
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
+  auth: process.env.REPLICATE_API_TOKEN
 });
 
 export async function generateImage(prompt, modelName) {
@@ -74,9 +76,10 @@ export async function generateImage(prompt, modelName) {
 
     // Return both the local URL and the Google Drive URL
     return {
-      localUrl: `/generated/${filename}`,
-      driveUrl: driveResult.imageUrl,
+      imageUrl: `public/${filename}`,
+      driveUrl: driveResult.imageUrl
     };
+
   } catch (error) {
     console.error("❌ Error while generating image", error);
     throw error;

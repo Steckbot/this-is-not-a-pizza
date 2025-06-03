@@ -2,7 +2,7 @@ import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { generateImage } from "./generator.js";
-import { uploadToDrive, listFiles} from "./drive.js";
+import { listFiles, savePromptsToDrive, getPromptsFromDrive } from "./drive.js";
 import fs from "fs";
 import dotenv from "dotenv";
 
@@ -37,18 +37,13 @@ app.post("/generate", async (req, res) => {
     const result = await generateImage(prompt, model);
     console.log("Generated image result:", result);
     
-    // Save prompt mapping
-    const promptFile = join(publicDir, "prompts.json");
-    let prompts = {};
-    if (fs.existsSync(promptFile)) {
-      prompts = JSON.parse(fs.readFileSync(promptFile, "utf8"));
-    }
-    // Save prompt using the Google Drive URL as the key
+    // Save prompt mapping to Google Drive
+    let prompts = await getPromptsFromDrive();
     prompts[result.driveUrl] = prompt;
-    fs.writeFileSync(promptFile, JSON.stringify(prompts, null, 2));
+    await savePromptsToDrive(prompts);
 
     const response = { 
-      imageUrl: result.localUrl,
+      imageUrl: result.imageUrl,
       driveUrl: result.driveUrl
     };
     console.log("Sending response:", response);
@@ -87,16 +82,10 @@ app.get("/drive-image/:fileId", async (req, res) => {
 });
 
 // GET /prompts.json → Return prompt mapping
-app.get("/prompts.json", (req, res) => {
-  const promptFile = join(publicDir, "prompts.json");
-
+app.get("/prompts.json", async (req, res) => {
   try {
-    if (fs.existsSync(promptFile)) {
-      const data = fs.readFileSync(promptFile, "utf8");
-      res.type("application/json").send(data);
-    } else {
-      res.json({});
-    }
+    const prompts = await getPromptsFromDrive();
+    res.type("application/json").json(prompts);
   } catch (error) {
     console.error("❌ Error reading prompts.json:", error);
     res.status(500).json({ error: "Error reading prompts.json" });
