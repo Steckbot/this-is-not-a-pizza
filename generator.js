@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN
+  auth: process.env.REPLICATE_API_TOKEN,
 });
 
 export async function generateImage(prompt, modelName) {
@@ -77,9 +77,8 @@ export async function generateImage(prompt, modelName) {
     // Return both the local URL and the Google Drive URL
     return {
       imageUrl: `public/${filename}`,
-      driveUrl: driveResult.imageUrl
+      driveUrl: driveResult.imageUrl,
     };
-
   } catch (error) {
     console.error("❌ Error while generating image", error);
     throw error;
